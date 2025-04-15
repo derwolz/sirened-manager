@@ -100,10 +100,10 @@ class BookCatalogFormatter:
         """Load initial data from database"""
         try:
             # Load authors
-            self.authors = self.db_manager.get_authors()
+            self.authors = self.db_manager.authors.get_all()
             
             # Load books
-            self.books = self.db_manager.get_books()
+            self.books = self.db_manager.books.get_all()
             
             # Load genres (will be loaded as needed in the genres tab)
             
@@ -117,7 +117,7 @@ class BookCatalogFormatter:
         """Load user settings from database"""
         try:
             # Check if we have a saved publisher setting
-            is_publisher = self.db_manager.get_setting("is_publisher", "0")
+            is_publisher = self.db_manager.settings.get("is_publisher", "0")
             self.is_publisher.set(is_publisher == "1")
             
             # Load any other settings as needed
@@ -128,7 +128,7 @@ class BookCatalogFormatter:
         """Save user settings to database"""
         try:
             # Save publisher setting
-            self.db_manager.set_setting("is_publisher", "1" if self.is_publisher.get() else "0")
+            self.db_manager.settings.set("is_publisher", "1" if self.is_publisher.get() else "0")
             
             # Save any other settings as needed
         except Exception as e:
