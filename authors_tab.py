@@ -330,7 +330,7 @@ class AuthorsTab:
         self.books_listbox.delete(0, tk.END)
         
         try:
-            books = self.db_manager.get_books_by_author(author_id)
+            books = self.db_manager.books.get_by_author(author_id)
             
             for book in books:
                 # title is the second column (index 1)

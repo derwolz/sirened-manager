@@ -44,7 +44,7 @@ class AuthorProcessor:
                 # Add user to database if it doesn't exist
                 if user_id:
                     try:
-                        self.db_manager.add_user(user_info)
+                        self.db_manager.user.add(user_info)
                     except Exception as e:
                         logger.log_warning(f"Error adding user {user_id}: {str(e)}")
             
@@ -75,16 +75,16 @@ class AuthorProcessor:
                 if existing_authors:
                     # Update existing author
                     local_id = existing_authors[0][0]
-                    if not self.db_manager.update_author(local_id, author_data):
+                    if not self.db_manager.authors.update(local_id, author_data):
                         raise DatabaseError(f"Failed to update author with ID {local_id}")
                 else:
                     # Insert new author
-                    local_id = self.db_manager.add_author(author_data)
+                    local_id = self.db_manager.authors.add(author_data)
                     if not local_id:
                         raise DatabaseError("Failed to add new author to database")
                         
                     # Store the mapping between API ID and local ID
-                    if not self.db_manager.set_setting(f"author_api_id_{api_author_id}", str(local_id)):
+                    if not self.db_manager.settings.set(f"author_api_id_{api_author_id}", str(local_id)):
                         logger.log_warning(f"Failed to store mapping for author ID {api_author_id}")
                 
                 # Download author image if URL is provided

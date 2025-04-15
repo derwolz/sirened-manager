@@ -27,7 +27,7 @@ class GenreProcessor:
                     return True
             
             # If API fetch fails or no cookies, check if we have cached genres
-            cached_genres = self.db_manager.get_setting("cached_genres")
+            cached_genres = self.db_manager.settings.get("cached_genres")
             if cached_genres:
                 genres_data = json.loads(cached_genres)
                 self.import_genres(genres_data)
@@ -48,11 +48,11 @@ class GenreProcessor:
             # Process each genre
             for genre in genres_data:
                 # Add the genre to the database
-                self.db_manager.add_genre(genre)
+                self.db_manager.genres.add(genre)
                 
             # Cache the genres data for offline use
-            self.db_manager.set_setting("cached_genres", json.dumps(genres_data))
-            self.db_manager.set_setting("genres_last_updated", datetime.now().isoformat())
+            self.db_manager.settings.set("cached_genres", json.dumps(genres_data))
+            self.db_manager.settings.set("genres_last_updated", datetime.now().isoformat())
             
             return True
             
@@ -97,5 +97,5 @@ class GenreProcessor:
         for genre in genres:
             genre_id = genre.get("id")
             if genre_id:
-                self.db_manager.add_book_genre(book_id, genre_id)
+                self.db_manager.books.add_genre(book_id, genre_id)
 

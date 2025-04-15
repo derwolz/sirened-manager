@@ -75,19 +75,19 @@ class BookProcessor:
                 if existing_books:
                     # Update existing book
                     local_id = existing_books[0][0]
-                    if not self.db_manager.update_book(local_id, db_book):
+                    if not self.db_manager.books.update_book(local_id, db_book):
                         raise RuntimeError(f"Failed to update existing book with ID {local_id}")
                     return local_id
                 else:
                     # Insert new book
-                    local_id = self.db_manager.add_book(db_book)
+                    local_id = self.db_manager.books.add(db_book)
                     
                     if not local_id:
                         raise RuntimeError("Failed to add new book to database")
                     
                     # Store the mapping between API ID and local ID
                     if db_book["id"]:
-                        self.db_manager.set_setting(f"book_api_id_{db_book['id']}", str(local_id))
+                        self.db_manager.settings.set(f"book_api_id_{db_book['id']}", str(local_id))
                     return local_id
                     
             except (sqlite3.Error, sqlite3.DatabaseError) as db_error:

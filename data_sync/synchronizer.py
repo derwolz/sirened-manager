@@ -200,7 +200,7 @@ class DataSynchronizer:
             authors.append(author)        
         # Load books
         books = []
-        books_raw = self.db_manager.get_books()
+        books_raw = self.db_manager.books.get_all()
         for book_row in books_raw:
             # Try to parse internal_details if available
             internal_details = {}
@@ -266,7 +266,7 @@ class DataSynchronizer:
         
         # Load genres
         genres = []
-        genres_raw = self.db_manager.get_all_genres()
+        genres_raw = self.db_manager.genres.get_all()
         for genre_row in genres_raw:
             genre = {
                 "id": genre_row[0],

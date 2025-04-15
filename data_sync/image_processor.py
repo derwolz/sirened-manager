@@ -41,7 +41,7 @@ class ImageProcessor:
             return
         
         # Find local book ID
-        book_local_id_setting = self.db_manager.get_setting(f"book_api_id_{book_id}")
+        book_local_id_setting = self.db_manager.settings.get(f"book_api_id_{book_id}")
         if not book_local_id_setting:
             logger.log_warning(f"Could not find local book ID for remote book ID {book_id}")
             return
@@ -67,7 +67,7 @@ class ImageProcessor:
             if existing_images:
                 # Update existing image
                 local_image_id = existing_images[0][0]
-                self.db_manager.update_image(local_image_id, {
+                self.db_manager.images.update(local_image_id, {
                     'remote_url': image_url,
                     'width': width,
                     'height': height,
@@ -75,7 +75,7 @@ class ImageProcessor:
                 })
             else:
                 # Insert new image record
-                local_image_id = self.db_manager.add_image({
+                local_image_id = self.db_manager.images.add({
                     'bookId': book_local_id,
                     'imageUrl': image_url,
                     'width': width,
