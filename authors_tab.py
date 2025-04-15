@@ -304,11 +304,12 @@ class AuthorsTab:
     def get_authors_from_db(self):
         """Get all authors from database"""
         try:
-            return self.db_manager.get_authors()
+            # Use the new method from DatabaseManager
+            return self.db_manager.authors.get_all()
         except Exception as e:
             messagebox.showerror("Database Error", f"Failed to load authors: {str(e)}")
-            return []
-    
+            return []    
+
     def update_authors_listbox(self):
         """Update the authors listbox from database"""
         self.authors_listbox.delete(0, tk.END)

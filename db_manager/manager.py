@@ -27,7 +27,7 @@ from exceptions import (
 class DatabaseManager:
     def __init__(self):
         self.db_path = DATABASE_PATH
-        self.connection_manager = DatabaseConnectionManager(db_path)
+        self.connection_manager = DatabaseConnectionManager(self.db_path)
         
         # Initialize all models with the connection manager
         self.authors = AuthorModel(self.connection_manager)

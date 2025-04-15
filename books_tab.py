@@ -160,69 +160,21 @@ class BooksTab:
         # Log debug info
         logger.log_debug(f"Updating book author dropdown. Publisher mode: {self.parent.is_publisher.get()}")
         
-        if hasattr(self.parent, 'authors'):
-            logger.log_debug(f"Parent has {len(self.parent.authors)} authors")
+        try:
+            # Use the new method from DatabaseManager
+            authors_raw = self.parent.db_manager.authors.get_all()
+            logger.log_debug(f"Got {len(authors_raw)} authors from DB")
             
-            # Inspect each author
-            for i, author in enumerate(self.parent.authors):
-                logger.log_debug(f"Author {i} type: {type(author)}")
-                logger.log_debug(f"Author {i} content: {author}")
-                
-                if isinstance(author, dict):
-                    # Try multiple possible attribute names for author name
-                    author_name = None
-                    for key in ["author_name", "name", "authorName", "displayName"]:
-                        if key in author and author[key]:
-                            author_name = author[key]
-                            logger.log_debug(f"Found author name in key '{key}': {author_name}")
-                            break
-                    
-                    if author_name:
-                        author_names.append(author_name)
-                        logger.log_debug(f"Added dict author: {author_name}")
-                    else:
-                        logger.log_debug(f"Could not find valid author name in dict: {author}")
-                elif isinstance(author, tuple):
-                    # Try to extract the name from tuple
-                    potential_name_indices = [2, 1, 3]  # Try these indices in order
-                    author_name = None
-                    
-                    for idx in potential_name_indices:
-                        if len(author) > idx and author[idx]:
-                            author_name = author[idx]
-                            logger.log_debug(f"Found author name at index {idx}: {author_name}")
-                            break
-                    
-                    if author_name:
-                        author_names.append(author_name)
-                        logger.log_debug(f"Added tuple author: {author_name}")
-                    else:
-                        logger.log_debug(f"Could not find valid author name in tuple: {author}")
-                else:
-                    logger.log_debug(f"Unknown author type: {type(author)}, value: {author}")
-        else:
-            logger.log_debug("Parent has no authors attribute")
+            for author in authors_raw:
+                # author is a tuple from the database query
+                # index 2 is typically the author_name
+                if len(author) > 2 and author[2]:
+                    author_name = author[2]
+                    author_names.append(author_name)
+                    logger.log_debug(f"Added author: {author_name}")
         
-        # If we have no authors yet, try to load directly from DB
-        if not author_names and hasattr(self.parent, 'db_manager'):
-            try:
-                logger.log_debug("Trying to get authors directly from database")
-                authors_db = self.parent.db_manager.get_authors()
-                logger.log_debug(f"Got {len(authors_db)} authors from DB")
-                logger.log_debug(f"Sample author from DB: {authors_db[0] if authors_db else 'None'}")
-                
-                for author in authors_db:
-                    if len(author) > 2 and author[2]:  # Make sure index 2 is not None
-                        author_name = author[2]  # index 2 is author_name
-                        author_names.append(author_name)
-                        logger.log_debug(f"Added DB author: {author_name}")
-            except Exception as e:
-                logger.log_error(f"Error getting authors from database: {str(e)}")
-        
-        # Ensure no None values in the list
-        author_names = [name for name in author_names if name is not None]
-        
-        logger.log_debug(f"Final author dropdown list: {author_names}")
+        except Exception as e:
+            logger.log_error(f"Error getting authors: {str(e)}")
         
         # Set the values in the combobox
         self.book_author_combo['values'] = author_names
@@ -230,7 +182,6 @@ class BooksTab:
         # If we're in publisher mode and there are no authors, show a warning
         if self.parent.is_publisher.get() and not author_names:
             logger.log_error("No authors found for publisher mode")
-
     def add_book(self):
             """Add a new book to the list"""
             self.clear_book_fields()

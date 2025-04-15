@@ -186,7 +186,7 @@ class DataSynchronizer:
         
         # Load authors
         authors = []
-        authors_raw = self.db_manager.get_authors()
+        authors_raw = self.db_manager.authors.get_all()  # Changed from get_authors()
         for author_row in authors_raw:
             author = {
                 "id": author_row[0],
@@ -197,8 +197,7 @@ class DataSynchronizer:
                 "website": author_row[6],
                 "bio": author_row[7]
             }
-            authors.append(author)
-        
+            authors.append(author)        
         # Load books
         books = []
         books_raw = self.db_manager.get_books()
