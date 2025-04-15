@@ -1,0 +1,10 @@
+venv/
+*.csv*
+*.txt*
+*.out*
+*.python*
+*.db
+uploads/*
+__pycache__
+exports/
+

@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/home/servus/Programs/tools/massuploader/main.py", line 1570, in <module>
+    app = BookCatalogFormatter(root)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/servus/Programs/tools/massuploader/main.py", line 36, in __init__
+    self.setup_books_tab()
+  File "/home/servus/Programs/tools/massuploader/main.py", line 156, in setup_books_tab
+    ttk.Button(top_frame, text="Edit Book", command=self.edit_book).pack(side=tk.LEFT, padx=5)
+                                                    ^^^^^^^^^^^^^^
+AttributeError: 'BookCatalogFormatter' object has no attribute 'edit_book'. Did you mean: 'add_book'?
