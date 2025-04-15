@@ -1,7 +1,7 @@
 import tkinter as tk
 import os
 from book_catalog_formatter import BookCatalogFormatter
-from database_manager import DatabaseManager
+from db_manager import DatabaseManager  # Updated import
 
 def ensure_directory_structure():
     """Ensure all required directories exist"""
