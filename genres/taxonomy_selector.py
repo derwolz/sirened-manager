@@ -104,7 +104,7 @@ class TaxonomySelector:
     
     def filter_taxonomies(self, taxonomy_type, search_text):
         """
-        Filter taxonomies based on search text
+        Filter taxonomies based on search text and exclude already selected ones
         
         Args:
             taxonomy_type: Type of taxonomy to filter
@@ -124,6 +124,9 @@ class TaxonomySelector:
         # Get current selected taxonomies
         current_taxonomies = self.parent.get_current_taxonomies()
         
+        # Extract IDs of already selected taxonomies
+        selected_ids = [t.get("taxonomyId") for t in current_taxonomies]
+        
         # Filter based on search and exclude already selected ones
         for taxonomy in taxonomies:
             name = taxonomy.get("name", "").lower()
@@ -131,14 +134,18 @@ class TaxonomySelector:
             
             # Check if already selected
             taxonomy_id = taxonomy.get("id")
-            already_selected = any(
-                t.get("taxonomyId") == taxonomy_id and t.get("type") == taxonomy_type
-                for t in current_taxonomies
-            )
             
             if ((not search_text or search_text in name or search_text in description) and 
-                not already_selected):
-                display_text = f"{taxonomy.get('name')} - {taxonomy.get('description', '')[:30]}..."
+                taxonomy_id not in selected_ids):
+                # Format display text
+                if taxonomy.get("description"):
+                    description_preview = taxonomy.get("description", "")[:30]
+                    if len(taxonomy.get("description", "")) > 30:
+                        description_preview += "..."
+                    display_text = f"{taxonomy.get('name')} - {description_preview}"
+                else:
+                    display_text = taxonomy.get('name')
+                    
                 listbox.insert(tk.END, display_text)
                 
                 # Store the ID in our parallel list
@@ -171,8 +178,9 @@ class TaxonomySelector:
         success = self.parent.add_taxonomy(taxonomy_type, taxonomy_id)
         
         if success:
-            # Refresh taxonomies to exclude the newly added one
-            self.filter_taxonomies(taxonomy_type, getattr(self, f"{taxonomy_type}_search").get())
+            # Remove the selected item from the listbox
+            listbox.delete(index)
+            self.taxonomy_ids[taxonomy_type].pop(index)
     
     def update_taxonomy_counts(self, counts):
         """
@@ -189,9 +197,12 @@ class TaxonomySelector:
             self.taxonomy_notebook.tab(i, text=f"{tax_type.capitalize()}s ({count}/{max_count})")
     
     def refresh_all_taxonomies(self):
-        """Refresh all taxonomy lists"""
+        """Refresh all taxonomy lists to exclude already selected items"""
         for taxonomy_type in ["genre", "subgenre", "theme", "trope"]:
-            self.filter_taxonomies(taxonomy_type, getattr(self, f"{taxonomy_type}_search").get())
+            # Get current search text
+            search_text = getattr(self, f"{taxonomy_type}_search").get()
+            # Refresh the list with current search text
+            self.filter_taxonomies(taxonomy_type, search_text)
     
     def get_frame(self):
         """Return the main frame of this component"""

@@ -6,7 +6,7 @@ from tkinter import simpledialog
 
 # Import component modules
 from .book_selector import BookSelector
-from .taxonomy_selection import TaxonomySelector
+from .taxonomy_selector import TaxonomySelector
 from .selected_taxonomies import SelectedTaxonomies
 
 class GenresTab:
@@ -69,15 +69,40 @@ class GenresTab:
         """Update book selection dropdown in genres tab"""
         books_data = []
         
-        for book in self.parent.books:
-            if isinstance(book, dict):
-                books_data.append(book)
+        # Get books data from database instead of relying on parent.books
+        if hasattr(self.parent, 'db_manager'):
+            try:
+                # Use the books model to get all books with author information
+                books_data = self.parent.db_manager.books.get_all()
+                
+                # Convert tuple results to dictionaries
+                formatted_books = []
+                for book in books_data:
+                    # Extract relevant fields - adjust indices based on your schema
+                    book_dict = {
+                        "id": book[0],  # id
+                        "title": book[1],  # title
+                        "author": book[2] if book[2] else book[21],  # author or effective_author
+                        "authorId": book[3]  # authorId
+                    }
+                    formatted_books.append(book_dict)
+                
+                books_data = formatted_books
+            except Exception as e:
+                import app_logger as logger
+                logger.log_error(f"Error fetching books from database: {str(e)}")
+                # Fallback to parent.books if database query fails
+                for book in self.parent.books:
+                    if isinstance(book, dict):
+                        books_data.append(book)
+        else:
+            # Fallback if no database manager
+            for book in self.parent.books:
+                if isinstance(book, dict):
+                    books_data.append(book)
         
         # Update book selector with books data
         self.book_selector.update_books(books_data)
-        
-        # Populate all taxonomy lists
-        self.taxonomy_selector.refresh_all_taxonomies()
     
     # Communication methods for components
     
@@ -93,9 +118,14 @@ class GenresTab:
         # Load taxonomies for this book
         self.load_book_taxonomies(book_id)
         
-        # Update UI
+        # Update UI - order matters here!
+        # First update the selected taxonomies display
         self.selected_taxonomies.update_selected_listbox(self.current_taxonomies)
+        
+        # Then update the counts in the tab headers
         self.update_taxonomy_counts()
+        
+        # Finally refresh the taxonomy selector lists to exclude already selected items
         self.taxonomy_selector.refresh_all_taxonomies()
     
     def get_taxonomies_by_type(self, taxonomy_type):
@@ -108,6 +138,35 @@ class GenresTab:
         Returns:
             List of taxonomy dictionaries
         """
+        # First try to get taxonomies from database
+        if hasattr(self.parent, 'db_manager'):
+            try:
+                query = """
+                SELECT id, name, description, type, parentId
+                FROM genres
+                WHERE type = ? OR (? = 'genre' AND (type IS NULL OR type = ''))
+                ORDER BY name
+                """
+                
+                results = self.parent.db_manager.execute_query(query, (taxonomy_type, taxonomy_type))
+                
+                taxonomies = []
+                for result in results:
+                    taxonomy_id, name, description, db_type, parent_id = result
+                    taxonomies.append({
+                        "id": taxonomy_id,
+                        "name": name,
+                        "description": description,
+                        "type": taxonomy_type,  # Use the requested type if db_type is None
+                        "parentId": parent_id
+                    })
+                
+                return taxonomies
+            except Exception as e:
+                import app_logger as logger
+                logger.log_error(f"Error fetching taxonomies from database: {str(e)}")
+        
+        # Fallback to parent.genres
         if not hasattr(self.parent, 'genres'):
             return []
             
@@ -153,6 +212,13 @@ class GenresTab:
             messagebox.showerror("Error", f"{taxonomy_type.capitalize()} not found in database")
             return False
         
+        # Check if already selected
+        for existing in self.current_taxonomies:
+            if existing.get("taxonomyId") == taxonomy_id:
+                messagebox.showinfo("Information", 
+                                 f"This {taxonomy_type} is already selected")
+                return False
+        
         # Check if we've reached the maximum for this type
         type_count = sum(1 for t in self.current_taxonomies if t.get("type") == taxonomy_type)
         max_counts = {"genre": 2, "subgenre": 5, "theme": 6, "trope": 7}
@@ -176,6 +242,9 @@ class GenresTab:
         # Update UI
         self.selected_taxonomies.update_selected_listbox(self.current_taxonomies)
         self.update_taxonomy_counts()
+        
+        # Refresh taxonomy selectors to filter out the newly added taxonomy
+        self.taxonomy_selector.refresh_all_taxonomies()
         
         return True
     
@@ -209,27 +278,29 @@ class GenresTab:
         self.selected_taxonomies.update_selected_listbox(self.current_taxonomies)
     
     def remove_taxonomy(self, index):
-            """
-            Remove a taxonomy (called by SelectedTaxonomies)
-            
-            Args:
-                index: Index of the taxonomy to remove
-            """
-            if index < 0 or index >= len(self.current_taxonomies):
-                return
-            
-            # Remove taxonomy
-            self.current_taxonomies.pop(index)
-            
-            # Reorder ranks
-            for i, taxonomy in enumerate(self.current_taxonomies):
-                taxonomy["rank"] = i + 1
-            
-            # Update UI
-            self.selected_taxonomies.update_selected_listbox(self.current_taxonomies)
-            self.update_taxonomy_counts()
-            self.taxonomy_selector.refresh_all_taxonomies()
+        """
+        Remove a taxonomy (called by SelectedTaxonomies)
         
+        Args:
+            index: Index of the taxonomy to remove
+        """
+        if index < 0 or index >= len(self.current_taxonomies):
+            return
+        
+        # Remove taxonomy
+        self.current_taxonomies.pop(index)
+        
+        # Reorder ranks
+        for i, taxonomy in enumerate(self.current_taxonomies):
+            taxonomy["rank"] = i + 1
+        
+        # Update UI
+        self.selected_taxonomies.update_selected_listbox(self.current_taxonomies)
+        self.update_taxonomy_counts()
+        
+        # Refresh taxonomy selectors to include the removed taxonomy
+        self.taxonomy_selector.refresh_all_taxonomies()
+    
     def save_taxonomies(self):
         """Save the current taxonomies (called by SelectedTaxonomies)"""
         if not self.current_book_id:
@@ -253,7 +324,7 @@ class GenresTab:
             messagebox.showerror("Error", f"Required taxonomies missing: {', '.join(missing)}")
             return
         
-        # Find if this book already has taxonomies
+        # Find if this book already has taxonomies in memory
         found = False
         for i, relation in enumerate(self.parent.book_taxonomies):
             if isinstance(relation, dict) and relation.get("book_id") == self.current_book_id:
@@ -274,32 +345,37 @@ class GenresTab:
         
         # Store in database if needed
         if hasattr(self.parent, 'db_manager'):
-            # For each taxonomy, store book_id, taxonomy_id, type, and rank
-            self.parent.db_manager.execute_query(
-                "DELETE FROM book_genres WHERE book_id = ?", 
-                (self.current_book_id,)
-            )
-            
-            for taxonomy in self.current_taxonomies:
-                taxonomy_id = taxonomy.get("taxonomyId")
-                rank = taxonomy.get("rank", 0)
-                importance = float(self.selected_taxonomies.calculate_importance(rank))
+            try:
+                # First delete existing associations
+                self.parent.db_manager.execute_query(
+                    "DELETE FROM book_genres WHERE book_id = ?", 
+                    (self.current_book_id,)
+                )
                 
-                query = """
-                INSERT INTO book_genres (book_id, genre_id, rank, importance) 
-                VALUES (?, ?, ?, ?)
-                """
-                
-                try:
+                # Then add new associations
+                for taxonomy in self.current_taxonomies:
+                    taxonomy_id = taxonomy.get("taxonomyId")
+                    rank = taxonomy.get("rank", 0)
+                    importance = float(self.selected_taxonomies.calculate_importance(rank))
+                    
+                    query = """
+                    INSERT INTO book_genres (book_id, genre_id, rank, importance) 
+                    VALUES (?, ?, ?, ?)
+                    """
+                    
                     self.parent.db_manager.execute_query(
                         query, 
                         (self.current_book_id, taxonomy_id, rank, importance)
                     )
-                except Exception as e:
-                    import app_logger as logger
-                    logger.log_error(f"Error saving taxonomy {taxonomy_id}: {str(e)}")
-        
-        messagebox.showinfo("Success", "Taxonomies saved successfully")
+                    
+                messagebox.showinfo("Success", "Taxonomies saved successfully")
+                
+            except Exception as e:
+                import app_logger as logger
+                logger.log_error(f"Error saving taxonomies: {str(e)}")
+                messagebox.showerror("Error", f"Failed to save taxonomies: {str(e)}")
+        else:
+            messagebox.showinfo("Success", "Taxonomies saved in memory")
         
         # Update parent if needed
         if hasattr(self.parent, 'update_export_status'):
@@ -314,14 +390,8 @@ class GenresTab:
         """
         self.current_taxonomies = []
         
-        # Find taxonomies for this book in the parent's book_taxonomies
-        for taxonomy_relation in self.parent.book_taxonomies:
-            if isinstance(taxonomy_relation, dict) and taxonomy_relation.get("book_id") == book_id:
-                self.current_taxonomies = taxonomy_relation.get("taxonomies", [])
-                break
-                
-        # If book_taxonomies is empty or book not found, try to load from database
-        if not self.current_taxonomies and hasattr(self.parent, 'db_manager'):
+        # Try to load from database first for most up-to-date data
+        if hasattr(self.parent, 'db_manager'):
             try:
                 # Query the database for taxonomies
                 query = """
@@ -338,16 +408,31 @@ class GenresTab:
                 for i, result in enumerate(results):
                     taxonomy_id, name, tax_type, rank, importance = result
                     
+                    # Use default type "genre" if not specified
+                    if not tax_type:
+                        tax_type = "genre"
+                    
                     # Add to current taxonomies
                     self.current_taxonomies.append({
                         "taxonomyId": taxonomy_id,
                         "name": name,
-                        "type": tax_type if tax_type else "genre",
+                        "type": tax_type,
                         "rank": rank if rank is not None else i + 1
                     })
+                    
+                # If we found taxonomies in the database, return
+                if self.current_taxonomies:
+                    return
+                    
             except Exception as e:
                 import app_logger as logger
                 logger.log_error(f"Error loading taxonomies from database: {str(e)}")
+        
+        # If database query failed or returned no results, try in-memory data
+        for taxonomy_relation in self.parent.book_taxonomies:
+            if isinstance(taxonomy_relation, dict) and taxonomy_relation.get("book_id") == book_id:
+                self.current_taxonomies = taxonomy_relation.get("taxonomies", [])
+                break
         
         # Sort by rank
         self.current_taxonomies.sort(key=lambda x: x.get("rank", 999))
