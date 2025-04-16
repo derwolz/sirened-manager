@@ -11,6 +11,7 @@ from .author_processor import AuthorProcessor
 from .book_processor import BookProcessor
 from .genre_processor import GenreProcessor
 from .image_processor import ImageProcessor
+from .taxonomy_processor import TaxonomyProcessor
 from exceptions import DatabaseError
 
 class DataSynchronizer:
@@ -27,6 +28,7 @@ class DataSynchronizer:
         self.book_processor = BookProcessor(db_manager, self)
         self.genre_processor = GenreProcessor(db_manager)
         self.image_processor = ImageProcessor(db_manager)
+        self.taxonomy_processor = TaxonomyProcessor(db_manager, self)
         
     def synchronize_data(self, cookies=None):
         """Main method to synchronize all data from the API to local database"""
@@ -108,6 +110,9 @@ class DataSynchronizer:
                         # Process genres if any
                         if "genres" in book and book["genres"]:
                             self.genre_processor.process_book_genres(book["genres"], book_id)
+                        if "genreTaxonomies" in book and book["genreTaxonomies"]:
+                            self.taxonomy_processor.process_book_taxonomies(book["genreTaxonomies"], book_id)
+        
             
             return True
             
@@ -151,7 +156,9 @@ class DataSynchronizer:
                     # Process genres if any
                     if "genres" in book and book["genres"]:
                         self.genre_processor.process_book_genres(book["genres"], book_id)
-            
+                    if "genreTaxonomies" in book and book["genreTaxonomies"]:
+                        self.taxonomy_processor.process_book_taxonomies(book["genreTaxonomies"], book_id)
+    
             return True
             
         except Exception as e:

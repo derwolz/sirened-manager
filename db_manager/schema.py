@@ -99,7 +99,7 @@ def initialize_tables(cursor):
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS genres (
         id INTEGER PRIMARY KEY,
-        name TEXT NOT NULL,
+        genre TEXT NOT NULL,
         description TEXT,
         type TEXT,
         parentId INTEGER,
@@ -115,6 +115,8 @@ def initialize_tables(cursor):
         id INTEGER PRIMARY KEY,
         book_id INTEGER,
         genre_id INTEGER,
+        rank INTEGER DEFAULT 0,
+        importance REAL DEFAULT 0.0,
         FOREIGN KEY (book_id) REFERENCES books (id),
         FOREIGN KEY (genre_id) REFERENCES genres (id),
         UNIQUE(book_id, genre_id)
