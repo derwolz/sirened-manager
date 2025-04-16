@@ -89,7 +89,7 @@ class BookImagePreview:
         
         # Get images for this book from database
         try:
-            images = db_manager.images.get(book_id)
+            images = db_manager.images.get_by_book(book_id)
             logger.log_debug(f"Found {len(images) if images else 0} images for book ID {book_id}")
             
             if not images:

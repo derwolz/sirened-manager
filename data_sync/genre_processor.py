@@ -11,8 +11,9 @@ class GenreProcessor:
     """
     Handles processing and storing genre data
     """
-    def __init__(self, db_manager):
+    def __init__(self, db_manager, synchronizer=None):
         self.db_manager = db_manager
+        self.synchronizer = synchronizer
         
     def sync_genres(self, cookies=None):
         """Sync genre data from the API or import from provided format"""
@@ -25,7 +26,8 @@ class GenreProcessor:
                     genres_data = response.json()
                     self.import_genres(genres_data)
                     return True
-            
+                else:
+                    logger.log_error("unable to fetch genre data")
             # If API fetch fails or no cookies, check if we have cached genres
             cached_genres = self.db_manager.settings.get("cached_genres")
             if cached_genres:
@@ -42,8 +44,9 @@ class GenreProcessor:
     def import_genres(self, genres_data):
         """Import genres from the provided data structure"""
         if not genres_data:
+            logger.log_debug(f"give me something you piece of shit I'm so sick of stupid html responses")
             return False
-            
+        logger.log_debug(f"importing genres: {genres_data}") 
         try:
             # Process each genre
             for genre in genres_data:

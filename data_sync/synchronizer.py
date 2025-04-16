@@ -26,7 +26,7 @@ class DataSynchronizer:
         # Initialize processors
         self.author_processor = AuthorProcessor(db_manager, self)
         self.book_processor = BookProcessor(db_manager, self)
-        self.genre_processor = GenreProcessor(db_manager)
+        self.genre_processor = GenreProcessor(db_manager, self)
         self.image_processor = ImageProcessor(db_manager)
         self.taxonomy_processor = TaxonomyProcessor(db_manager, self)
         

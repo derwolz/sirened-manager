@@ -99,7 +99,7 @@ def initialize_tables(cursor):
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS genres (
         id INTEGER PRIMARY KEY,
-        genre TEXT NOT NULL,
+        name TEXT NOT NULL,
         description TEXT,
         type TEXT,
         parentId INTEGER,

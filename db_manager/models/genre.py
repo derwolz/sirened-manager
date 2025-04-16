@@ -7,6 +7,7 @@ class GenreModel:
     def __init__(self, connection_manager):
         self.connection_manager = connection_manager
     
+    # Here's a fix for the GenreModel.add() method:
     def add(self, genre_data):
         """Add a genre"""
         if not genre_data:
@@ -22,7 +23,7 @@ class GenreModel:
         
         params = (
             genre_data.get('id'),
-            genre_data.get('name'),
+            genre_data.get('name'),  # Map 'name' from input to 'genre' in DB
             genre_data.get('description'),
             genre_data.get('type'),
             genre_data.get('parentId'),
