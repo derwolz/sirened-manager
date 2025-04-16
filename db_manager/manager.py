@@ -13,6 +13,7 @@ from .models.genre import GenreModel
 from .models.publisher import PublisherModel
 from .models.image import ImageModel
 from .models.settings import SettingsModel
+from .models.user import UserModel
 
 from exceptions import (
     ConnectionError, 
@@ -36,7 +37,8 @@ class DatabaseManager:
         self.images = ImageModel(self.connection_manager)
         self.publishers = PublisherModel(self.connection_manager)
         self.settings = SettingsModel(self.connection_manager)
-    
+        self.users = UserModel(self.connection_manager)
+
         self.initialize_db()
     
     def initialize_db(self):

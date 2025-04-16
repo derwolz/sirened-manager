@@ -131,6 +131,20 @@ def initialize_tables(cursor):
     )
     ''')
 
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY,
+        name TEXT UNIQUE,
+        pubisher_description TEXT,
+        business_email TEXT,
+        business_phone TEXT,
+        business_address TEXT,
+        website TEXT,
+        logoUrl TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+
     # Check and add local_file_path column to images table
     cursor.execute("PRAGMA table_info(images)")
     columns = cursor.fetchall()

@@ -94,7 +94,10 @@ class BookCatalogFormatter:
         """Factory method to create genres tab"""
         return GenresTab(self)
     
-    
+     
+    def create_users_tab(self):
+        """Factory method to create users tab"""
+        return UsersTab(self)
     
     def load_data_from_database(self):
         """Load initial data from database"""

@@ -44,7 +44,7 @@ class AuthorProcessor:
                 # Add user to database if it doesn't exist
                 if user_id:
                     try:
-                        self.db_manager.user.add(user_info)
+                        self.db_manager.users.add(user_info)
                     except Exception as e:
                         logger.log_warning(f"Error adding user {user_id}: {str(e)}")
             
