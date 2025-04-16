@@ -12,7 +12,7 @@ from config import (
 from settings_tab import SettingsTab
 from authors_tab import AuthorsTab
 from books_tab import BooksTab
-from genres_tab import GenresTab
+from genres import GenresTab
 from authentication_tab import AuthenticationTab
 
 class BookCatalogFormatter:
