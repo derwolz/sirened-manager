@@ -11,6 +11,7 @@ PUBLISHER_STATUS_ENDPOINT = "/api/publisher-status"
 PUBLISHER_AUTHORS_ENDPOINT = "/api/catalogue/publisher"
 AUTHORS_ENDPOINT = "/api/catalogue/author"
 GENRE_ENDPOINT = "/api/genres"
+UPLOAD_ENDPOINT = "/api/publisher/"
 
 # Database Configuration
 DATABASE_PATH = "book_catalog.db"
