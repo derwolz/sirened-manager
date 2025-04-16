@@ -195,7 +195,7 @@ class BooksTab:
         
         try:
             logger.log_debug("Force loading authors from database")
-            authors_db = self.parent.db_manager.get_authors()
+            authors_db = self.parent.db_manager.authors.get_all()
             logger.log_debug(f"Forced load got {len(authors_db)} authors from DB")
             
             # Dump one author record to see structure
@@ -547,7 +547,7 @@ class BooksTab:
         """Update the books listbox"""
         self.books_listbox.delete(0, tk.END)
         # Get latest books from database with author information
-        self.parent.books = self.parent.db_manager.get_books()
+        self.parent.books = self.parent.db_manager.books.get_all()
         for book in self.parent.books:
             self.books_listbox.insert(tk.END, book[1])
             
@@ -558,7 +558,7 @@ class BooksTab:
         self.parent.books = []
         
         # Get books with author information from database
-        self.parent.books = db_manager.get_books()
+        self.parent.books = db_manager.books.get_all()
 
         self.update_books_listbox()
         self.update_book_author_dropdown()

@@ -170,14 +170,14 @@ class DataSynchronizer:
         website = publisher_info.get("website", "")
         
         # Store relevant publisher details in settings
-        self.db_manager.set_setting("publisher_id", str(publisher_id))
-        self.db_manager.set_setting("publisher_name", publisher_name)
-        self.db_manager.set_setting("publisher_description", publisher_description)
-        self.db_manager.set_setting("publisher_email", business_email)
-        self.db_manager.set_setting("publisher_website", website)
+        self.db_manager.settings.set("publisher_id", str(publisher_id))
+        self.db_manager.settings.set("publisher_name", publisher_name)
+        self.db_manager.settings.set("publisher_description", publisher_description)
+        self.db_manager.settings.set("publisher_email", business_email)
+        self.db_manager.settings.set("publisher_website", website)
         
         # Mark user as a publisher
-        self.db_manager.set_setting("is_publisher", "1")
+        self.db_manager.settings.set("is_publisher", "1")
     
     def update_parent_data(self):
         """Update parent application's data structures with fresh database data"""

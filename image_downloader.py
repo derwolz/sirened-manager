@@ -119,13 +119,13 @@ class ImageDownloader:
         if local_path:
             # Update the author record with the local file path
             try:
-                author = self.db_manager.get_author(author_id)
+                author = self.db_manager.authors.get_all(author_id)
                 if author:
                     update_data = {
                         'local_image_path': local_path
                     }
                     logger.log_debug(f"Updating author with local_image_path: {local_path}")
-                    self.db_manager.update_author(author_id, update_data)
+                    self.db_manager.authors.update(author_id, update_data)
                 return local_path
             except Exception as e:
                 logger.log_error(f"Error updating author with local image path: {str(e)}")
@@ -163,7 +163,7 @@ class ImageDownloader:
                         'local_file_path': local_path
                     }
                     logger.log_debug(f"Updating image record with local_file_path: {local_path}")
-                    self.db_manager.update_image(image_id, update_data)
+                    self.db_manager.images.update(image_id, update_data)
                 return local_path
             except Exception as e:
                 logger.log_error(f"Error updating image record with local file path: {str(e)}")
@@ -304,7 +304,7 @@ class ImageDownloader:
                                 file_size = os.path.getsize(local_path) // 1024  # Size in KB
                                 
                                 # Update image record with dimensions
-                                self.db_manager.update_image(image_id, {
+                                self.db_manager.images.update(image_id, {
                                     'width': width,
                                     'height': height,
                                     'sizeKb': file_size,

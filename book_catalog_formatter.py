@@ -316,8 +316,32 @@ class BookCatalogFormatter:
         self.debug_toggle = ttk.Checkbutton(self.debug_controls, text="Enable Debug Logging", 
                                            variable=self.debug_enabled, 
                                            command=lambda: logger.set_debug_enabled(self.debug_enabled.get()))
+
         self.debug_toggle.pack(side=tk.LEFT, padx=5)
         
+        # Create warning log tab
+        self.warning_tab = ttk.Frame(self.debug_notebook)
+        self.debug_notebook.add(self.warning_tab, text="warning Log")
+        
+        # Create warning text widget with scroll
+        self.warning_scroll = ttk.Scrollbar(self.warning_tab)
+        self.warning_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        self.warning_text = tk.Text(self.warning_tab, height=10, yscrollcommand=self.warning_scroll.set, 
+                                 wrap=tk.WORD, background="#fff0f0")
+        self.warning_text.pack(fill=tk.BOTH, expand=True)
+        self.warning_scroll.config(command=self.warning_text.yview)
+        
+        # Create warning controls
+        self.warning_controls = ttk.Frame(self.warning_tab)
+        self.warning_controls.pack(fill=tk.X, pady=5)
+        
+        self.clear_warning_btn = ttk.Button(self.warning_controls, text="Clear Warning Log", 
+                                          command=logger.clear_warning_log)
+        self.clear_warning_btn.pack(side=tk.LEFT, padx=5)
+
+
+
         # Create error log tab
         self.error_tab = ttk.Frame(self.debug_notebook)
         self.debug_notebook.add(self.error_tab, text="Error Log")
@@ -345,7 +369,7 @@ class BookCatalogFormatter:
         self.toggle_debug_btn.pack(fill=tk.X, pady=(5, 0))
         
         # Initialize the logger module with our UI components
-        logger.initialize(self.root, self.debug_text, self.error_text, self.debug_notebook)
+        logger.initialize(self.root, self.debug_text, self.error_text, self.warning_text, self.debug_notebook)
         
     def toggle_debug_visibility(self):
         """Toggle the visibility of the debug section"""

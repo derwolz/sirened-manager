@@ -186,7 +186,7 @@ class AuthorsTab:
                     new_id = result[0][0] + 1
                 
                 author_data["id"] = new_id
-                self.db_manager.add_author(author_data)
+                self.db_manager.authors.add(author_data)
                 messagebox.showinfo("Success", f"Author '{author_name}' added successfully")
             
             # Update UI
@@ -218,7 +218,7 @@ class AuthorsTab:
             author_name = author[2]  # author_name is the third column
             
             # Check if author is used in any books
-            books = self.db_manager.get_books_by_author(author_id)
+            books = self.db_manager.books.get_by_author(author_id)
             if books:
                 messagebox.showerror(
                     "Error", 

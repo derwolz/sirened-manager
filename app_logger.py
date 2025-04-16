@@ -10,6 +10,7 @@ from tkinter import ttk
 
 # Global variables to hold references to log widgets
 debug_text = None
+warning_text = None
 error_text = None
 debug_notebook = None
 debug_enabled = True
@@ -17,14 +18,18 @@ root = None
 
 # Log queues for when UI is not available yet
 debug_queue = []
+warning_queue = []
 error_queue = []
 
-def initialize(tk_root, debug_text_widget, error_text_widget, debug_notebook_widget):
+def initialize(tk_root, debug_text_widget, error_text_widget,warning_text_widget, debug_notebook_widget):
     """Initialize the logger with UI components"""
-    global debug_text, error_text, debug_notebook, root
+    global debug_text, error_text, debug_notebook, root, warning_text
     
     debug_text = debug_text_widget
     error_text = error_text_widget
+
+    warning_text = warning_text_widget
+
     debug_notebook = debug_notebook_widget
     root = tk_root
     
@@ -36,6 +41,7 @@ def initialize(tk_root, debug_text_widget, error_text_widget, debug_notebook_wid
     for message in error_queue:
         log_error(message)
     error_queue.clear()
+
 
 def set_debug_enabled(enabled):
     """Enable or disable debug logging"""
@@ -71,6 +77,28 @@ def log_debug(message):
             root.update_idletasks()
     except Exception as e:
         print(f"[ERROR] Failed to update debug log UI: {str(e)}")
+        sys.stdout.flush()
+
+def log_warning(message):
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+    formatted_message = f"[{timestamp}] {message}"
+    print(f"[WARNING] {formatted_message}")
+    sys.stdout.flush()
+    if error_text is None:
+        warning_queue.append(message)
+        return
+    try:
+        warning_text.configure(state="normal")
+        warning_text.insert(tk.END, formatted_message + "\n")
+        warning_text.see(tk.END)
+        warning_text.configure(state="disabled")
+
+        if debug_notebook:
+                debug_notebook.select(1)
+        if root:
+            root.update_idletasks()
+    except Exception as E:
+        print(f"[ERROR] FAILED TO update warning log UI: {str(e)}")
         sys.stdout.flush()
 
 def log_error(message):
@@ -111,6 +139,13 @@ def clear_debug_log():
         debug_text.configure(state="normal")
         debug_text.delete(1.0, tk.END)
         debug_text.configure(state="disabled")
+
+def clear_warning_log():
+    """Clear the warning log"""
+    if warning_text:
+        warning_text.configure(state="normal")
+        warning_text.delete(1.0, tk.END)
+        warning_text.configure(state="disabled")
 
 def clear_error_log():
     """Clear the error log"""
