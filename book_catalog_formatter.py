@@ -1,8 +1,9 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import os
 import requests
-import app_logger as logger  # Import the standalone logger module
+import threading
+import app_logger as logger
 from config import (
     API_BASE_URL, 
     LOGIN_ENDPOINT, 
@@ -38,9 +39,39 @@ class BookCatalogFormatter:
         self.is_author = tk.BooleanVar(value=False)
         self.is_publisher = tk.BooleanVar(value=False)
         
-        # Create the main notebook (tabs)
-        self.notebook = ttk.Notebook(root)
-        self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # Create the main layout
+        self.setup_main_layout()
+        
+        # Bind events
+        self.is_publisher.trace_add("write", self.update_tab_permissions)
+        self.is_author.trace_add("write", self.update_tab_permissions)
+        self.is_authenticated.trace_add("write", self.update_tab_permissions)
+        
+        # Load data from database
+        self.load_data_from_database()
+        
+        # Initialize the data synchronizer
+        from data_sync import DataSynchronizer
+        self.synchronizer = DataSynchronizer(db_manager, self)
+        
+        # Initialize the push synchronizer
+        from data_sync.sync_pushers import DataPushSynchronizer
+        self.push_synchronizer = DataPushSynchronizer(self, self.db_manager)
+        
+        # Disable all tabs except authentication initially
+        self.disable_all_tabs_except_auth()
+        
+        logger.log_debug("BookCatalogFormatter initialized")
+    
+    def setup_main_layout(self):
+        """Setup the main application layout with proper containment hierarchy"""
+        # Main container - holds everything
+        self.main_container = ttk.Frame(self.root)
+        self.main_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Create the notebook (tabs)
+        self.notebook = ttk.Notebook(self.main_container)
+        self.notebook.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
         # Setup tabs in correct order
         self.authentication_tab = self.create_authentication_tab()
@@ -58,22 +89,30 @@ class BookCatalogFormatter:
             "genres": 4,
         }
         
+        # Create sync control panel
+        self.sync_frame = ttk.Frame(self.main_container)
+        self.sync_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        # Add a separator for visual clarity
+        self.separator = ttk.Separator(self.sync_frame, orient='horizontal')
+        self.separator.pack(fill=tk.X, pady=5)
+        
+        # Create a label for sync status
+        self.status_var = tk.StringVar()
+        self.status_label = ttk.Label(self.sync_frame, textvariable=self.status_var, foreground="blue")
+        self.status_label.pack(side=tk.LEFT, padx=5)
+        
+        # Create the sync button
+        self.sync_button = ttk.Button(
+            self.sync_frame, 
+            text="↑↓ Sync with Server", 
+            command=self.sync_with_server
+        )
+        self.sync_button.pack(side=tk.RIGHT, padx=5)
+        
         # Create debugging and error message frames
         self.create_debug_frames()
-        
-        # Bind events
-        self.is_publisher.trace_add("write", self.update_tab_permissions)
-        self.is_author.trace_add("write", self.update_tab_permissions)
-        self.is_authenticated.trace_add("write", self.update_tab_permissions)
-        
-        # Load data from database
-        self.load_data_from_database()
-        
-        # Disable all tabs except authentication initially
-        self.disable_all_tabs_except_auth()
-        
-        logger.log_debug("BookCatalogFormatter initialized")
-        
+    
     def create_authentication_tab(self):
         """Factory method to create authentication tab"""
         return AuthenticationTab(self)
@@ -94,7 +133,6 @@ class BookCatalogFormatter:
         """Factory method to create genres tab"""
         return GenresTab(self)
     
-     
     def create_users_tab(self):
         """Factory method to create users tab"""
         return UsersTab(self)
@@ -243,17 +281,15 @@ class BookCatalogFormatter:
                 if tab_name != "authentication":
                     self.notebook.tab(tab_index, state="normal")
                     
-                
-        # AUTHOR: Access to Books, Events , Settings, and Genres
+        # AUTHOR: Access to Books, Events, Settings, and Genres
         elif is_author:
             # Enable author-accessible tabs
-            for tab_name in ["settings", "books", "genres" ]:
+            for tab_name in ["settings", "books", "genres"]:
                 self.notebook.tab(self.tab_indexes[tab_name], state="normal")
                 
             # Disable Authors tab
             self.notebook.tab(self.tab_indexes["authors"], state="disabled")
             
-                
         # REGULAR USER: Limited access
         else:
             # Disable Authors tab
@@ -262,7 +298,6 @@ class BookCatalogFormatter:
             # Enable basic tabs
             for tab_name in ["settings", "books", "genres"]:
                 self.notebook.tab(self.tab_indexes[tab_name], state="normal")
-                
         
         # Update related dropdowns if they exist
         self.refresh_ui_elements()
@@ -280,15 +315,72 @@ class BookCatalogFormatter:
         # Update genre book dropdown
         if hasattr(self.genres_tab, 'update_genre_book_dropdown'):
             self.genres_tab.update_genre_book_dropdown()
-            
     
+    def sync_with_server(self):
+        """Sync local data with the server"""
+        # Make sure user is logged in
+        if not self.is_authenticated.get():
+            messagebox.showinfo(
+                "Authentication Required", 
+                "Please log in first to sync with the server", 
+                parent=self.root
+            )
+            self.notebook.select(self.tab_indexes["authentication"])
+            return
             
+        # Set authentication cookies
+        self.push_synchronizer.set_auth_cookies(self.cookies)
+        
+        # Confirm with user
+        if messagebox.askyesno(
+            "Confirm Sync", 
+            "This will push all local changes to the server and pull the latest data. Continue?", 
+            parent=self.root
+        ):
+            # Disable sync button during sync
+            self.sync_button.configure(state="disabled")
+            self.status_var.set("Syncing with server...")
+            
+            def do_sync():
+                """Perform sync in a separate thread"""
+                success = self.push_synchronizer.push_all_data()
+                
+                # Update UI in main thread
+                self.root.after(0, lambda: self._sync_completed(success))
+            
+            # Start sync in a separate thread
+            sync_thread = threading.Thread(target=do_sync, daemon=True)
+            sync_thread.start()
+
+    def _sync_completed(self, success):
+        """Called when sync is complete"""
+        self.sync_button.configure(state="normal")
+        self.status_var.set("")
+        
+        if success:
+            # Refresh UI elements
+            self.refresh_ui_elements()
+            
+            messagebox.showinfo(
+                "Sync Complete", 
+                "Successfully synchronized with the server", 
+                parent=self.root
+            )
+        else:
+            messagebox.showerror(
+                "Sync Failed", 
+                "Some errors occurred during synchronization. Check the error log for details.", 
+                parent=self.root
+            )
+            # Show the error log
+            self.debug_notebook.select(2)  # Index of the error tab
+    
     # ===== DEBUGGING AND ERROR HANDLING =====
     
     def create_debug_frames(self):
         """Create debug and error message frames at the bottom of the application"""
         # Create a frame for the debug section at the bottom
-        self.debug_frame = ttk.Frame(self.root)
+        self.debug_frame = ttk.Frame(self.main_container)
         self.debug_frame.pack(fill=tk.X, side=tk.BOTTOM, padx=10, pady=(0, 5))
         
         # Create notebook for debug and error tabs
@@ -324,7 +416,7 @@ class BookCatalogFormatter:
         
         # Create warning log tab
         self.warning_tab = ttk.Frame(self.debug_notebook)
-        self.debug_notebook.add(self.warning_tab, text="warning Log")
+        self.debug_notebook.add(self.warning_tab, text="Warning Log")
         
         # Create warning text widget with scroll
         self.warning_scroll = ttk.Scrollbar(self.warning_tab)
@@ -342,8 +434,6 @@ class BookCatalogFormatter:
         self.clear_warning_btn = ttk.Button(self.warning_controls, text="Clear Warning Log", 
                                           command=logger.clear_warning_log)
         self.clear_warning_btn.pack(side=tk.LEFT, padx=5)
-
-
 
         # Create error log tab
         self.error_tab = ttk.Frame(self.debug_notebook)
