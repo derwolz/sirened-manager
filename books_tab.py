@@ -5,6 +5,8 @@ from csv_import_handler import CSVImportHandler
 import json
 import app_logger as logger
 from book_image_preview import BookImagePreview
+from mass_book_import import BooksMassImport
+
 class BooksTab:
     def __init__(self, parent):
         self.parent = parent
@@ -14,7 +16,8 @@ class BooksTab:
         parent.notebook.add(self.frame, text="Books")
         
         self.setup_tab()
-        self.csv_import_handler = CSVImportHandler(self)
+        self.mass_import = BooksMassImport(self)
+        # self.csv_import_handler = CSVImportHandler(self)
     
     def setup_tab(self):
         # Split frame into two main sections
